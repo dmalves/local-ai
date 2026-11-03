@@ -38,6 +38,8 @@ Persistent volumes:
 
 The default model, used when `MODEL_FILE` is unset, is `qwen2.5-coder-7b-instruct-q4_k_m.gguf`.
 
+These weights are not part of this repository and are not covered by the MIT License below. Each model stays under the license of its publisher.
+
 ## Requirements
 
 - Podman
@@ -75,6 +77,6 @@ The default model, used when `MODEL_FILE` is unset, is `qwen2.5-coder-7b-instruc
 
 ## License
 
-This repository is licensed under the [MIT License](LICENSE). Copyright (c) 2026 Daniel de Matos Alves.
+The [MIT License](LICENSE) covers only the code in this repository: `podman-compose.yml`, `download-models.sh`, `run.sh`, and this documentation. Copyright (c) 2026 Daniel de Matos Alves.
 
-The grant covers the files in this repository. GGUF model weights and the llama.cpp and Open WebUI container images keep their own licenses.
+Model weights are not covered. `download-models.sh` only fetches GGUF files into a Podman volume. Those weights are not part of this repository and stay under the licenses of their original authors and distributors. The llama.cpp and Open WebUI container images are also outside this license.
