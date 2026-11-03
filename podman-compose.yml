@@ -1,0 +1,41 @@
+version: '3.8'
+
+name: local-ai
+
+services:
+  llama-backend:
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan
+    container_name: llama-backend
+    restart: unless-stopped
+    devices:
+      - "/dev/dri:/dev/dri"
+    security_opt:
+      - "label=disable"
+    group_add:
+      - "${VIDEO_GID:-44}"
+      - "${RENDER_GID:-109}"
+    volumes:
+      - local-ai_llama-models:/models
+    entrypoint: ["/app/llama-server", "--host", "0.0.0.0", "--port", "8080", "-m", "/models/${MODEL_FILE:-qwen2.5-coder-7b-instruct-q4_k_m.gguf}", "-ngl", "99", "--device", "Vulkan0"]
+    ports:
+      - "8080:8080"
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://llama-backend:8080/v1
+      - OPENAI_API_KEY=vllm-placeholder
+    volumes:
+      - local-ai_open-webui-data:/app/backend/data
+    depends_on:
+      - llama-backend
+
+volumes:
+  local-ai_llama-models:
+    name: local-ai_llama-models
+  local-ai_open-webui-data:
+    name: local-ai_open-webui-data
