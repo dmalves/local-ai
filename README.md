@@ -1,14 +1,14 @@
-# Local AI Stack (Open WebUI + llama.cpp + Vulkan)
+# Local AI Stack (Open WebUI + llama.cpp + Vulkan + Docling)
 
 ![A scruffy little robot begging with a sign that says Will infer for VRAM, sitting beside a dusty old graphics card](assets/poor-local-llm.jpg)
 
 *Built for hardware that is small, scrappy, and a bit out of breath.*
 
-Local LLM stack that runs **Open WebUI** in front of a **llama.cpp** server, with GPU acceleration through **Vulkan** on **Podman**. The compose file passes `/dev/dri` into the backend and selects `Vulkan0`, which matches an AMD GPU such as an RX 580.
+Local LLM stack that runs **Open WebUI** in front of a **llama.cpp** server, with GPU acceleration through **Vulkan** on **Podman**, plus **[Docling Serve](https://github.com/docling-project/docling)** for document conversion and ingestion over HTTP. The compose file passes `/dev/dri` into the backend and selects `Vulkan0`, which matches an AMD GPU such as an RX 580.
 
 ## Contents
 
-- `podman-compose.yml`: Podman Compose stack. Defines the llama.cpp backend, Open WebUI, and the two named volumes.
+- `podman-compose.yml`: Podman Compose stack. Defines the llama.cpp backend, Open WebUI, Docling Serve, and the three named volumes.
 - `download-models.sh`: Interactive downloader. Pulls GGUF models from Hugging Face into the `local-ai_llama-models` volume.
 - `run.sh`: Startup wrapper. Detects the host `video` and `render` group IDs, selects the model, and forwards arguments to `podman-compose`.
 - `README.md`: How to use the stack.
@@ -19,11 +19,13 @@ Local LLM stack that runs **Open WebUI** in front of a **llama.cpp** server, wit
 | --- | --- | --- | --- |
 | `llama-backend` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | `8080` | llama.cpp server with Vulkan offload (`-ngl 99`, device `Vulkan0`) |
 | `open-webui` | `ghcr.io/open-webui/open-webui:main` | `3000` | Chat UI. Talks to the backend at `http://llama-backend:8080/v1` |
+| `docling-serve` | `quay.io/docling-project/docling-serve` | `5001` | Docling Serve HTTP API for document processing; cache stored in a named volume |
 
 Persistent volumes:
 
 - `local-ai_llama-models` stores the GGUF files, mounted at `/models` in the backend.
 - `local-ai_open-webui-data` stores Open WebUI data.
+- `local-ai_docling-cache` stores Docling and related caches (for example Hugging Face), mounted at `/root/.cache` in the Docling container.
 
 `run.sh` reads the host `video` and `render` GIDs and passes them into the backend container so it can use the GPU. If a group is missing, it falls back to `44` (`video`) and `109` (`render`).
 
@@ -73,10 +75,10 @@ These weights are not part of this repository and are not covered by the MIT Lic
 
    `MODEL_FILE` must match a file already stored in `local-ai_llama-models`.
 
-4. Open the UI at [http://localhost:3000](http://localhost:3000). The llama.cpp API is on [http://localhost:8080](http://localhost:8080).
+4. Open the UI at [http://localhost:3000](http://localhost:3000). The llama.cpp API is on [http://localhost:8080](http://localhost:8080). Docling Serve is on [http://localhost:5001](http://localhost:5001). Wire Open WebUI to that URL yourself if you want document pipelines or RAG to use Docling; nothing in this repo configures that automatically.
 
 ## License
 
 The [MIT License](LICENSE) covers only the code in this repository: `podman-compose.yml`, `download-models.sh`, `run.sh`, and this documentation. Copyright (c) 2026 Daniel de Matos Alves.
 
-Model weights are not covered. `download-models.sh` only fetches GGUF files into a Podman volume. Those weights are not part of this repository and stay under the licenses of their original authors and distributors. The llama.cpp and Open WebUI container images are also outside this license.
+Model weights are not covered. `download-models.sh` only fetches GGUF files into a Podman volume. Those weights are not part of this repository and stay under the licenses of their original authors and distributors. The llama.cpp, Open WebUI, and Docling Serve container images are also outside this license.
