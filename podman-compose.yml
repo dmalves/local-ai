@@ -34,8 +34,24 @@ services:
     depends_on:
       - llama-backend
 
+  docling-serve:
+    image: quay.io/docling-project/docling-serve
+    container_name: docling-serve
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - local-ai_docling-cache:/root/.cache
+    environment:
+      - DOCLING_SERVE_MAX_SYNC_WAIT=6000  # Aumenta o tempo limite para 100 minutos (6000s)
+      - OMP_NUM_THREADS=4                # Ajuste conforme o número de CPUs disponíveis
+      - MKL_NUM_THREADS=4                # Ajuda na performance do processamento matemático
+      - UVICORN_WORKERS=1                # OBRIGATÓRIO manter em 1 para evitar erros de tarefa perdida
+
 volumes:
   local-ai_llama-models:
     name: local-ai_llama-models
   local-ai_open-webui-data:
     name: local-ai_open-webui-data
+  local-ai_docling-cache:
+    name: local-ai_docling-cache
