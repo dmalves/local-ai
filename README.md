@@ -8,7 +8,7 @@ Local LLM stack that runs **Open WebUI** in front of a **llama.cpp** server, wit
 
 ## Contents
 
-- `podman-compose.yml`: Podman Compose stack. Defines the llama.cpp backend, Open WebUI, Docling Serve, and the three named volumes.
+- `podman-compose.yml`: Podman Compose stack. Defines the llama.cpp backend, Open WebUI, Docling Serve, a shared bridge network (`local-ai_net`), and the three named volumes. Only Open WebUI publishes a port to the host (`3000`); the other services are reachable on that network by service name.
 - `download-models.sh`: Interactive downloader. Pulls GGUF models from Hugging Face into the `local-ai_llama-models` volume.
 - `run.sh`: Startup wrapper. Detects the host `video` and `render` group IDs, selects the model, and forwards arguments to `podman-compose`.
 - `README.md`: How to use the stack.
@@ -17,9 +17,9 @@ Local LLM stack that runs **Open WebUI** in front of a **llama.cpp** server, wit
 
 | Service | Image | Host port | Role |
 | --- | --- | --- | --- |
-| `llama-backend` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | `8080` | llama.cpp server with Vulkan offload (`-ngl 99`, device `Vulkan0`) |
-| `open-webui` | `ghcr.io/open-webui/open-webui:main` | `3000` | Chat UI. Talks to the backend at `http://llama-backend:8080/v1` |
-| `docling-serve` | `quay.io/docling-project/docling-serve` | `5001` | Docling Serve HTTP API for document processing; cache stored in a named volume |
+| `llama-backend` | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | — (internal `8080`) | llama.cpp server with Vulkan offload (`-ngl 99`, device `Vulkan0`). Open WebUI reaches it at `http://llama-backend:8080/v1`. |
+| `open-webui` | `ghcr.io/open-webui/open-webui:main` | `3000` | Chat UI. Only published service: `http://localhost:3000`. Backend URL set to `http://llama-backend:8080/v1`. |
+| `docling-serve` | `quay.io/docling-project/docling-serve` | — (internal `5001`) | Docling Serve HTTP API for document processing; cache stored in a named volume. Other containers use `http://docling-serve:5001`. |
 
 Persistent volumes:
 
@@ -75,7 +75,7 @@ These weights are not part of this repository and are not covered by the MIT Lic
 
    `MODEL_FILE` must match a file already stored in `local-ai_llama-models`.
 
-4. Open the UI at [http://localhost:3000](http://localhost:3000). The llama.cpp API is on [http://localhost:8080](http://localhost:8080). Docling Serve is on [http://localhost:5001](http://localhost:5001). Wire Open WebUI to that URL yourself if you want document pipelines or RAG to use Docling; nothing in this repo configures that automatically.
+4. Open the UI at [http://localhost:3000](http://localhost:3000). That is the **only** host-facing port: llama.cpp and Docling are not published to the host. Open WebUI already talks to the LLM at `http://llama-backend:8080/v1` on the internal network. If you configure Docling in Open WebUI yourself, use **`http://docling-serve:5001`** (service name on the same network), not `http://localhost:5001`. For debugging, you can `podman exec` into a container, run a throwaway container on `container:open-webui`'s network, or temporarily add a `ports` mapping in the compose file.
 
 ## License
 

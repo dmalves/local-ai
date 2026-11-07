@@ -17,8 +17,8 @@ services:
     volumes:
       - local-ai_llama-models:/models
     entrypoint: ["/app/llama-server", "--host", "0.0.0.0", "--port", "8080", "-m", "/models/${MODEL_FILE:-qwen2.5-coder-7b-instruct-q4_k_m.gguf}", "-ngl", "99", "--device", "Vulkan0"]
-    ports:
-      - "8080:8080"
+    networks:
+      - local-ai_net
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
@@ -33,13 +33,13 @@ services:
       - local-ai_open-webui-data:/app/backend/data
     depends_on:
       - llama-backend
+    networks:
+      - local-ai_net
 
   docling-serve:
     image: quay.io/docling-project/docling-serve
     container_name: docling-serve
     restart: unless-stopped
-    ports:
-      - "5001:5001"
     volumes:
       - local-ai_docling-cache:/root/.cache
     environment:
@@ -47,6 +47,12 @@ services:
       - OMP_NUM_THREADS=4                # Ajuste conforme o número de CPUs disponíveis
       - MKL_NUM_THREADS=4                # Ajuda na performance do processamento matemático
       - UVICORN_WORKERS=1                # OBRIGATÓRIO manter em 1 para evitar erros de tarefa perdida
+    networks:
+      - local-ai_net
+
+networks:
+  local-ai_net:
+    driver: bridge
 
 volumes:
   local-ai_llama-models:
